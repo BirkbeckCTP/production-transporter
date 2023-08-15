@@ -4,8 +4,13 @@ from django.contrib import messages
 
 from janeway_ftp import ftp
 
-from plugins.production_transporter import plugin_settings, utils as pt_utils
-from core import forms, files
+from plugins.production_transporter import (
+    plugin_settings,
+    utils as pt_utils,
+    forms,
+    models as pt_models
+)
+from core import forms as core_forms, files, models as core_models
 from submission import models
 from utils import setting_handler
 from security.decorators import has_journal, any_editor_user_required
@@ -42,14 +47,18 @@ def index(request):
         {
             'name': 'transport_ftp_remote_path',
             'object': setting_handler.get_setting('plugin', 'transport_ftp_remote_path', request.journal),
+        },
+        {
+            'name': 'transport_file_selection_text',
+            'object': setting_handler.get_setting('plugin', 'transport_file_selection_text', request.journal),
         }
     ]
     setting_group = 'plugin'
-    manager_form = forms.GeneratedSettingForm(
+    manager_form = core_forms.GeneratedSettingForm(
         settings=settings
     )
     if request.POST:
-        manager_form = forms.GeneratedSettingForm(
+        manager_form = core_forms.GeneratedSettingForm(
             request.POST,
             settings=settings,
         )
@@ -135,11 +144,79 @@ def handshake_url(request):
 
 @any_editor_user_required
 def jump_url(request, article_id):
-    return redirect(
-        reverse(
-            'manage_archive_article',
-            kwargs={
-                'article_id': article_id,
-            }
+    article = get_object_or_404(
+        models.Article,
+        pk=article_id,
+        journal=request.journal,
+    )
+    article_files = core_models.File.objects.filter(
+        article_id=article.pk,
+    )
+    try:
+        transport_files = article.transportfiles
+    except AttributeError:
+        transport_files = None
+
+    form = forms.TransportFilesForm(
+        instance=transport_files,
+        article=article,
+        article_files=article_files,
+        files_selected_by=request.user
+    )
+    if request.POST:
+        form = forms.TransportFilesForm(
+            request.POST,
+            instance=transport_files,
+            article=article,
+            article_files=article_files,
+            files_selected_by=request.user,
         )
+        if form.is_valid():
+            form.save()
+            if 'save_and_send' in request.POST:
+                zipped_folder_path, folder_string = pt_utils.prep_zip_folder(
+                    request,
+                    article,
+                )
+                ftp_server, ftp_username, ftp_password, ftp_remote_directory = pt_utils.get_ftp_details(
+                    request.journal,
+                )
+                ftp.send_file_via_ftp(
+                    ftp_server=ftp_server,
+                    ftp_username=ftp_username,
+                    ftp_password=ftp_password,
+                    remote_path=ftp_remote_directory,
+                    file_path=zipped_folder_path,
+                )
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    'Article files transported via FTP.',
+                )
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                'File for transport saved.',
+            )
+            return redirect(
+                reverse(
+                    'production_transporter_handshake_url',
+                )
+            )
+
+    template = 'production_transporter/jump.html'
+    context = {
+        'article': article,
+        'form': form,
+        'files': article_files,
+        'file_text': setting_handler.get_setting(
+            'plugin',
+            'transport_file_selection_text',
+            request.journal
+        ).processed_value
+    }
+    return render(
+        request,
+        template,
+        context,
     )
