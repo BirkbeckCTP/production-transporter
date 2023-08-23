@@ -11,6 +11,7 @@ from plugins.production_transporter import (
     models as pt_models
 )
 from core import forms as core_forms, files, models as core_models
+from core.templatetags.files import file_type
 from submission import models
 from utils import setting_handler
 from security.decorators import has_journal, any_editor_user_required
@@ -151,6 +152,8 @@ def jump_url(request, article_id):
     )
     article_files = core_models.File.objects.filter(
         article_id=article.pk,
+    ).order_by(
+        '-last_modified',
     )
     try:
         transport_files = article.transportfiles
@@ -204,11 +207,22 @@ def jump_url(request, article_id):
                 )
             )
 
+    manuscript_files = []
+    other_files = []
+    for _file in article_files:
+        _type = file_type(article, _file)
+        if _type == 'Manuscript':
+            manuscript_files.append(_file)
+        else:
+            other_files.append(_file)
+
     template = 'production_transporter/jump.html'
     context = {
         'article': article,
         'form': form,
         'files': article_files,
+        'manuscript_files': manuscript_files,
+        'other_files': other_files,
         'file_text': setting_handler.get_setting(
             'plugin',
             'transport_file_selection_text',

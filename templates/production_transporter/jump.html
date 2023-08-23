@@ -31,13 +31,25 @@
                         </tr>
                     </thead>
                     <tbody>
-                    {% for file in files %}
+                    {% for file in manuscript_files %}
+                        <tr>
+                            <td><input type="checkbox" name="files" value="{{ file.pk }}" id="id_files_{{ file.pk }}" {% if file in article.transportfiles.files.all %}checked="checked"{% elif forloop.first and not article.transportfiles.files.all  %}checked="checked"{% endif %}></td>
+                            <td>{{ file.pk }}</td>
+                            <td><label for="id_files_{{ file.pk }}">{{ file.label|default_if_none:"No Label" }}</label></td>
+                            <td>{{ file.original_filename }}</td>
+                            <td>{{ file_type }}</td>
+                            <td>{{ file.date_uploaded }}</td>
+                            <td>{{ file.last_modified }}</td>
+                            <td>{{ file.owner }}</td>
+                        </tr>
+                    {% endfor %}
+                    {% for file in other_files %}
                         <tr>
                             <td><input type="checkbox" name="files" value="{{ file.pk }}" id="id_files_{{ file.pk }}" {% if file in article.transportfiles.files.all %}checked="checked"{% endif %}></td>
                             <td>{{ file.pk }}</td>
                             <td><label for="id_files_{{ file.pk }}">{{ file.label|default_if_none:"No Label" }}</label></td>
                             <td>{{ file.original_filename }}</td>
-                            <td>{% file_type article file %}</td>
+                            <td>{{ file_type }}</td>
                             <td>{{ file.date_uploaded }}</td>
                             <td>{{ file.last_modified }}</td>
                             <td>{{ file.owner }}</td>
