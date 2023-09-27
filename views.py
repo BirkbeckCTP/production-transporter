@@ -96,14 +96,6 @@ def handshake_url(request):
     template = 'production_transporter/handshake.html'
 
     if request.POST:
-
-        if not article.transportfiles.all():
-            messages.add_message(
-                request,
-                messages.INFO,
-
-            )
-
         if 'download' in request.POST:
             article_pk = request.POST.get('download')
             article = get_object_or_404(
