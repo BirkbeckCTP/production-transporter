@@ -141,6 +141,11 @@ def handshake_url(request):
                     remote_path=ftp_remote_directory,
                     file_path=zipped_folder_path,
                 )
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    'Article files transported via FTP.',
+                )
                 pt_utils.send_notification(request, article)
             except ObjectDoesNotExist:
                 messages.add_message(
