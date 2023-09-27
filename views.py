@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, reverse, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 
 from janeway_ftp import ftp
 
@@ -103,7 +104,7 @@ def handshake_url(request):
                 pk=article_pk,
                 journal=request.journal,
             )
-            if article.transportfiles and article.transportfiles.files.exists():
+            try:
                 zipped_folder_path, folder_string = pt_utils.prep_zip_folder(
                     request,
                     article,
@@ -112,7 +113,7 @@ def handshake_url(request):
                     zipped_folder_path,
                     f"{folder_string}.zip",
                 )
-            else:
+            except ObjectDoesNotExist:
                 messages.add_message(
                     request,
                     messages.WARNING,
@@ -125,7 +126,7 @@ def handshake_url(request):
                 pk=article_pk,
                 journal=request.journal,
             )
-            if article.transportfiles and article.transportfiles.files.exists():
+            try:
                 zipped_folder_path, folder_string = pt_utils.prep_zip_folder(
                     request,
                     article,
@@ -141,7 +142,7 @@ def handshake_url(request):
                     file_path=zipped_folder_path,
                 )
                 pt_utils.send_notification(request, article)
-            else:
+            except ObjectDoesNotExist:
                 messages.add_message(
                     request,
                     messages.WARNING,
