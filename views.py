@@ -96,6 +96,14 @@ def handshake_url(request):
     template = 'production_transporter/handshake.html'
 
     if request.POST:
+
+        if not article.transportfiles.all():
+            messages.add_message(
+                request,
+                messages.INFO,
+
+            )
+
         if 'download' in request.POST:
             article_pk = request.POST.get('download')
             article = get_object_or_404(
@@ -103,14 +111,21 @@ def handshake_url(request):
                 pk=article_pk,
                 journal=request.journal,
             )
-            zipped_folder_path, folder_string = pt_utils.prep_zip_folder(
-                request,
-                article,
-            )
-            return files.serve_temp_file(
-                zipped_folder_path,
-                f"{folder_string}.zip",
-            )
+            if article.transportfiles.files.exists():
+                zipped_folder_path, folder_string = pt_utils.prep_zip_folder(
+                    request,
+                    article,
+                )
+                return files.serve_temp_file(
+                    zipped_folder_path,
+                    f"{folder_string}.zip",
+                )
+            else:
+                messages.add_message(
+                    request,
+                    messages.WARNING,
+                    'This article has no files set for deposit.'
+                )
         if 'ftp' in request.POST:
             article_pk = request.POST.get('ftp')
             article = get_object_or_404(
@@ -118,21 +133,28 @@ def handshake_url(request):
                 pk=article_pk,
                 journal=request.journal,
             )
-            zipped_folder_path, folder_string = pt_utils.prep_zip_folder(
-                request,
-                article,
-            )
-            ftp_server, ftp_username, ftp_password, ftp_remote_directory = pt_utils.get_ftp_details(
-                request.journal,
-            )
-            ftp.send_file_via_ftp(
-                ftp_server=ftp_server,
-                ftp_username=ftp_username,
-                ftp_password=ftp_password,
-                remote_path=ftp_remote_directory,
-                file_path=zipped_folder_path,
-            )
-            pt_utils.send_notification(request, article)
+            if article.transportfiles.files.exists():
+                zipped_folder_path, folder_string = pt_utils.prep_zip_folder(
+                    request,
+                    article,
+                )
+                ftp_server, ftp_username, ftp_password, ftp_remote_directory = pt_utils.get_ftp_details(
+                    request.journal,
+                )
+                ftp.send_file_via_ftp(
+                    ftp_server=ftp_server,
+                    ftp_username=ftp_username,
+                    ftp_password=ftp_password,
+                    remote_path=ftp_remote_directory,
+                    file_path=zipped_folder_path,
+                )
+                pt_utils.send_notification(request, article)
+            else:
+                messages.add_message(
+                    request,
+                    messages.WARNING,
+                    'This article has no files set for deposit.'
+                )
 
     context = {
         'articles_in_stage': articles_in_stage,
