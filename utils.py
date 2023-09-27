@@ -134,6 +134,10 @@ def on_article_accepted(**kwargs):
         logger.error(e)
 
     # Notify production email address
+    send_notification(request, article)
+
+
+def send_notification(request, article):
     notification_context = {
         'journal': article.journal,
         'article': article,

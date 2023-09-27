@@ -10,7 +10,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('core', '0082_galley_file_not_nullable'),
         ('submission', '0071_merge_0070_auto_20230120_1546_0070_auto_20230208_1233'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

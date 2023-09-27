@@ -132,6 +132,7 @@ def handshake_url(request):
                 remote_path=ftp_remote_directory,
                 file_path=zipped_folder_path,
             )
+            pt_utils.send_notification(request, article)
 
     context = {
         'articles_in_stage': articles_in_stage,
@@ -196,6 +197,7 @@ def jump_url(request, article_id):
                     messages.SUCCESS,
                     'Article files transported via FTP.',
                 )
+                pt_utils.send_notification(request, article)
             messages.add_message(
                 request,
                 messages.SUCCESS,
